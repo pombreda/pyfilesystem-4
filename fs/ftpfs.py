@@ -13,7 +13,7 @@ import sys
 import fs
 from fs.base import *
 from fs.errors import *
-from fs.path import pathsplit, abspath, dirname, recursepath, normpath, pathjoin, isbase
+from fs.path import pathsplit, abspath, dirname, recursepath, normpath, pathjoin, isbase, isabs
 
 from ftplib import FTP, error_perm, error_temp, error_proto, error_reply
 
@@ -123,6 +123,7 @@ class FTPListData(object):
         self.mtime = 0
         self.id_type = ID_TYPE.UNKNOWN
         self.id = None
+        self.link_target = None
 
 class FTPListDataParser(object):
     """
@@ -330,6 +331,9 @@ class FTPListDataParser(object):
             i = 0
             while (i + 3) < len(result.name):
                 if result.name[i:i+4] == ' -> ':
+                    target = result.name[i+4:]
+                    if target != '':
+                        result.link_target = target
                     result.name = result.name[:i]
                     break
                 i += 1
@@ -868,6 +872,13 @@ class _DirCache(dict):
         self.count -= 1
         return self.count
 
+def deref_link(link_path, real_path):
+    if isabs(real_path):
+        return real_path
+    else:
+        basename, fname = pathsplit(link_path)
+        return pathjoin(basename, real_path)
+
 class FTPFS(FS):    
     
     _meta = { 'thread_safe' : True,
@@ -1149,7 +1160,11 @@ class FTPFS(FS):
     @ftperrors
     def open(self, path, mode='r'):
         path = normpath(path)
-        mode = mode.lower()        
+        mode = mode.lower()
+        link_target = self.get_link_target(path)
+        if link_target is not None:
+            dereffed_path = deref_link(path, link_target)
+            return self.open(dereffed_path, mode)
         if self.isdir(path):
             raise ResourceInvalidError(path)        
         if 'r' in mode or 'a' in mode:
@@ -1183,6 +1198,17 @@ class FTPFS(FS):
             return True        
         dirlist, fname = self._get_dirlist(path)
         return fname in dirlist
+
+    @ftperrors
+    def get_link_target(self, path):
+        path = normpath(path)
+        if path in ('', '/'):
+            return True
+        dirlist, fname = self._get_dirlist(path)
+        info = dirlist.get(fname)
+        if info is None:
+            return None
+        return info['link_target']
 
     @ftperrors
     def isdir(self, path):
