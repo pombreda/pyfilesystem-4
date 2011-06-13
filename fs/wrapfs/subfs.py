@@ -24,7 +24,7 @@ class SubFS(WrapFS):
         super(SubFS,self).__init__(wrapped_fs)
 
     def _encode(self, path):
-        return pathjoin(self.sub_dir, relpath(normpath(path)))
+        return pathjoin(self.sub_dir, relpath(path))
 
     def _decode(self, path):
         return abspath(normpath(path))[len(self.sub_dir):]
