@@ -332,6 +332,9 @@ class FS(object):
         """
         return self.getpathurl(path, allow_none=True) is not None
 
+    def realpath(self, path):
+        raise UnsupportedError("realpath")
+
     def open(self, path, mode="r", **kwargs):
         """Open a the given path as a file-like object.
 

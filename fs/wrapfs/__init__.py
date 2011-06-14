@@ -151,6 +151,10 @@ class WrapFS(FS):
         return self._file_wrap(f, mode)
 
     @rewrite_errors
+    def realpath(self, path):
+        return self.wrapped_fs.realpath(self._encode(path))
+
+    @rewrite_errors
     def setcontents(self, path, data, chunk_size=64*1024):
         #  We can't pass setcontents() through to the wrapped FS if the
         #  wrapper has defined a _file_wrap method, as it would bypass 

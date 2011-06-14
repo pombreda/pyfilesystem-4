@@ -1157,6 +1157,14 @@ class FTPFS(FS):
             url = 'ftp://%s@%s%s' % (credentials, self.host.rstrip('/'), abspath(path))        
         return url             
 
+    def realpath(self, path):
+        path = normpath(path)
+        link_target = self.get_link_target(path)
+        if link_target is None:
+            return path
+        else:
+            return deref_link(path, link_target)
+
     @ftperrors
     def open(self, path, mode='r'):
         path = normpath(path)
